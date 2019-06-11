@@ -1,0 +1,221 @@
+<!-- JS 组件 -->
+
+<script>
+    // 主机列表点击隐藏主机
+    function ItemToggle(that) {
+        $(that).next().toggle();    // 显示或隐藏
+    }
+
+    // 搜索
+    function HostSearch(that){
+        var search_text = $('#search-host').val();
+
+        $('[tag="host-select"]').each(function () {
+            if ($(this).parent().text().search(search_text) != -1){
+                $(this).parent().show();
+            }else {
+                $(this).parent().hide();
+            }
+{#            console.log($(this));#}
+        })
+    }
+
+    // 全选
+    function SelectAll(that) {
+        $('[tag="host-select"]').each(function () {
+            $(this).prop('checked', true);
+            $(this).addClass('active');
+        })
+    }
+
+    // 反选
+    function SelectReverse(that) {
+        $('[tag="host-select"]').each(function () {
+            if ($(this).prop('checked')){
+                $(this).prop('checked', false);
+                $(this).removeClass('active');
+            }else {
+                $(this).prop('checked', true);
+                $(this).addClass('active');
+            }
+
+        })
+    }
+
+    // 取消
+    function SelectCancel(that) {
+        $('[tag="host-select"]').each(function () {
+            $(this).prop('checked', false);
+            $(this).removeClass('active');
+        })
+    }
+
+
+    function CheckAll(that) {
+        if ($(that).prop('checked')){
+            $(that).parent().siblings().children().prop('checked', true);
+            $(that).parent().siblings().children().addClass('active');
+        }else {
+            $(that).parent().siblings().children().prop('checked', false);
+            $(that).parent().siblings().children().removeClass('active');
+        }
+    }
+
+    // 检查用户输入勾选 checkbox，和输入命令
+    function CheckItem(that, task_type) {
+        // 判断是否勾选主机
+        var selected_host_ids = [];
+        $('[tag="host-select"]:checked').each(function () {
+            selected_host_ids.push($(this).val());
+        });
+
+        alert(selected_host_ids);
+
+        if (selected_host_ids.length == 0) {
+            alert('请至少勾选一个主机');
+            return false;
+        }
+
+
+        // 只有当提交的是命令的时候才判断是否有输入命令
+        if (task_type == 'cmd') {
+            // 判断是否输入命令
+            var cmd_text = $('#cmd_input').val().trim();    // trim() 去掉空格
+            if (cmd_text.length == 0) {
+                alert('请输入命令');
+                return false;
+            }
+
+            // 构建数据提交到后台
+            var data = {
+                'selected_host_ids': selected_host_ids,
+                'task_type': 'cmd',
+                'cmd': cmd_text
+            };
+        }
+        else {
+            var local_file_path = $('#local_file_path').val().trim();      // 本地文件路径
+            var remote_file_path = $('#remote_file_path').val().trim();    // 远程主机文件路径
+            var file_transfer_type = $('#file_transfer_type').val().trim();     // 文件类型，发送还是下载
+
+            console.log(local_file_path, remote_file_path);
+
+            if (file_transfer_type=='send'){
+                if (local_file_path.length==0){
+                    alert('必须要输入本地文件路径！');
+                    return false;
+                }
+            }
+
+            if (remote_file_path.length==0){
+                alert('必须要输入远程主机文件路径！');
+                return false;
+            }
+
+            // 构建数据提交到后台
+            var data = {
+                'selected_host_ids': selected_host_ids,
+                'task_type': 'file_transfer',
+                'file_transfer_type': file_transfer_type,
+                'local_file_path': local_file_path,
+                'remote_file_path': remote_file_path
+            };
+        }
+
+
+        // 提交一次后，禁用提交按钮，直至执行完毕，才解除
+        $(that).addClass('disabled');
+        // 再次提交时，情况 ul 中原有结果
+        $('#task_result_container').empty();
+
+        var csrftoken = $("input[name='csrfmiddlewaretoken']").val();
+        $.post("{% url 'batch_task' %}", {
+            'task_data': JSON.stringify(data),
+            'csrfmiddlewaretoken': csrftoken
+        }, function (callback) {
+            callback = JSON.parse(callback);
+
+            /* callback = {"task_id": 22,
+                "selected_hosts": [{"id": 32, "host_to_remote_user__host__ip_addr": "192.168.1.12",
+                 "host_to_remote_user__host__name": "centOS",
+                 "host_to_remote_user__remote_user__username": "hj"}]
+             }
+             */
+            $.each(callback.selected_hosts, function (index, d1) {
+                /* var li_ele = "<li log_id='"+ ele['id']  +"' >--------------Host:" + ele.host_to_remote_user__host__name + "(" + ele.host_to_remote_user__host__ip_addr + ")--------------<span tag='log_status'></span></li>";
+                li_ele += "<pre>waiting for result</pre>";
+                */
+
+                // JS 中 id 有特殊含义，因此此处需要转义
+                var li = "<li log_id='" + d1['id'] + "' >--------------Host:" + d1.host_to_remote_user__host__name + "(" + d1.host_to_remote_user__host__ip_addr + ")--------------<span tag='log_status'></span></li>";
+                li += '<pre>waitting for result</pre>';
+                $('#task_result_container').append(li);
+            });
+
+            // 设定一个计时器，每过 2s 就发起一次 ajax 请求，向后台获取结果
+            // 没有用 var，是一个全局变量
+            ResultRefreshObj = setInterval(function () {
+                GetTaskResult(callback.task_id);
+            }, 2000)
+        });
+
+
+    }
+
+
+    // 向后台发起 Ajax请求，获取批量命令执行结果
+    function GetTaskResult(task_id) {
+        $.ajax({
+            url: '/get_task_result/' + '?task_id=' + task_id,
+            type: 'get',
+            dataType: 'JSON',
+            success: function (args) {
+                console.log(args);
+                /*
+                args = [{'id': 40, 'result': '[WinError 10051] 向一个无法连接的网络尝试了一个套接字操作。', 'status': 2},
+                {'id': 41, 'result': "b'\\xe6\\x96\\x87\\xe4\\xbb\\xb6\\xe7\\xb3\\xbb\\xe7\\xbb\\x9f          1K-\\xe5\\x9d\\x97     \\xe5\\xb7\\xb2\\xe7\\x94\\xa8    \\xe5\\x8f\\xaf\\xe7\\x94\\xa8 \\xe5\\xb7\\xb2\\xe7\\x94\\xa8% \\xe6\\x8c\\x82\\xe8\\xbd\\xbd\\xe7\\x82\\xb9\\nudev            1994996        0 1994996    0% /dev\\ntmpfs            403428     2132  401296    1% /run\\n/dev/sda1      20509264 13099468 6344940   68% /\\ntmpfs           2017136    33036 1984100    2% /dev/shm\\ntmpfs              5120        4    5116    1% /run/lock\\ntmpfs           2017136        0 2017136    0% /sys/fs/cgroup\\n/dev/loop2        35456    35456       0  100% /snap/gtk-common-themes/818\\n/dev/loop4       144128   144128       0  100% /snap/gnome-3-26-1604/82\\n/dev/loop5         1024     1024       0  100% /snap/gnome-logs/61\\n/dev/loop0       144128   144128       0  100% /snap/gnome-3-26-1604/74\\n/dev/loop3        91392    91392       0  100% /snap/core/6673\\n/dev/loop1        55040    55040       0  100% /snap/core18/941\\n/dev/loop6        93184    93184       0  100% /snap/core/6405\\n/dev/loop7         2304     2304       0  100% /snap/gnome-calculator/260\\n/dev/loop8         3840     3840       0  100% /snap/gnome-system-monitor/57\\n/dev/loop9        14976    14976       0  100% /snap/gnome-logs/45\\n/dev/loop11        3840     3840       0  100% /snap/gnome-system-monitor/77\\n/dev/loop10        4224     4224       0  100% /snap/gnome-calculator/406\\n/dev/loop12       13312    13312       0  100% /snap/gnome-characters/139\\n/dev/loop13       93312    93312       0  100% /snap/core/6531\\n/dev/loop14       36224    36224       0  100% /snap/gtk-common-themes/1198\\ntmpfs            403424       32  403392    1% /run/user/121\\ntmpfs            403424       44  403380    1% /run/user/1000\\n'", 'status': 1}]
+
+                 */
+
+                var all_task_done = true;
+
+                // 循环批量命令结果
+                $.each(args, function (index2, d2) {
+                    // 获取每个 li 标签
+                    var li_ele = $("li[log_id=" + d2['id'] + "]");
+                    li_ele.children().first().text(d2['status']);
+                    li_ele.next().text(d2['result']);
+
+                    // 如果状态为 0，则表示还未执行完毕
+                    if (d2['status'] == 0) {
+                        all_task_done = false;
+                    }
+                });
+
+                // 所有任务执行完毕，关闭计时器
+                if (all_task_done) {
+                    clearInterval(ResultRefreshObj);
+                    $('#task_submit_btn').removeClass('disabled');
+                }
+
+            }
+        })
+    }
+
+
+    //////////////////////// 文件传输 //////////////////////////
+    // 判断文件类型
+    function SelectFileType(that) {
+        // select 选值
+        var select_value = $(that).val();
+        if (select_value == 'get') {
+            $('#local_file_path').addClass('hide');
+        }
+
+        if (select_value == 'send') {
+            $('#local_file_path').removeClass('hide');
+        }
+    }
+
+
+</script>

@@ -1,0 +1,29 @@
+{% extends 'index.html' %}
+
+{% block page-content %}
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>堡垒机账户</th>
+                <th>远程主机</th>
+                <th>操作用户</th>
+                <th>操作类型</th>
+                <th>操作内容</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for audit_log in audit_log_list %}
+                <tr>
+                    <td>{{ audit_log.id }}</td>
+                    <td>{{ audit_log.user.email }}</td>
+                    <td>{{ audit_log.host_to_remote_user.host.ip_addr }}</td>
+                    <td>{{ audit_log.host_to_remote_user.remote_user.username }}</td>
+                    <td>{{ audit_log.get_log_type_display }}</td>
+                    <td>{{ audit_log.content }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends 'index.html' %}
+
+{% load my_tags %}
+
+<style>
+    td{
+        width: 10px;
+        overflow: hidden;
+{#        text-overflow: ellipsis;#}
+        white-space: nowrap;
+        word-break: keep-all;
+    }
+</style>
+
+{% block page-content %}
+    <div class="sss">
+
+        <table class="table table-bordered table-striped" width="600px" style="table-layout: fixed">
+            <thead id="item_th">
+            <tr>
+                <th width="5%">ID</th>
+                <th width="28%">命令</th>
+                <th width="25%">result</th>
+                <th width="10%">status</th>
+                <th width="15%">IP</th>
+                <th width="15%">user</th>
+                <th width="25%">date</th>
+            </tr>
+            </thead>
+
+            <tbody id="item_tb">
+            {% for task_detail in task_detail_list %}
+                <tr>
+                    <td>{{ task_detail.id }}</td>
+                    <td style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{% get_taskdetail_content task_detail %}</td>
+                    <td style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ task_detail.result }}</td>
+                    <td>{{ task_detail.get_status_display }}</td>
+                    <td>{{ task_detail.host_to_remote_user.host.ip_addr }}</td>
+                    <td>{{ task_detail.task.user.email }}</td>
+                    <td>{{ task_detail.date }}</td>
+                </tr>
+            {% endfor %}
+
+            </tbody>
+        </table>
+    </div>
+
+{##}
+{##}
+{#    <div style="margin-top: 100px">#}
+{#        <table class="table table-bordered table-striped" width="600px" style="table-layout: fixed">#}
+{#            <thead>#}
+{#                <tr>#}
+{#                    <th width="25%">ID</th>#}
+{#                    <th width="25%">结果</th>#}
+{#                    <th width="25%">结果</th>#}
+{#                    <th width="25%">结果</th>#}
+{#                </tr>#}
+{##}
+{#            </thead>#}
+{##}
+{#            <tbody>#}
+{#                <tr>#}
+{#                    <td>1</td>#}
+{#                    <td style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">#}
+{#                        时更分分分分分分分分而哦哦哦哦哦欧菊吃吃戳戳哦#}
+{#                        送送送送送送送送送送#}
+{#                        送送送送送送#}
+{#                        啊啊啊啊啊啊#}
+{#                        哦吃出吃吃吃吃吃吃吃吃吃吃吃吃吃吃吃吃吃吃吃吃吃吃吃#}
+{#                        赛带带带带带带带带带带带带带带带带带带#}
+{#                        安抚带带带带带带带带带带带带带带#}
+{#                    </td>#}
+{#                    <td>adsfffffff</td>#}
+{#                    <td>savafrgrb</td>#}
+{#                </tr>#}
+{#            </tbody>#}
+{#        </table>#}
+{#    </div>#}
+{% endblock %}

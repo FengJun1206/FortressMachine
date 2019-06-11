@@ -1,0 +1,85 @@
+<!--批量命令、文件传输可操作主机列表组件-->
+<style>
+    .btn-item {
+        margin-bottom: 15px;
+        margin-right: 20px;
+    }
+
+    li {
+        list-style: none;
+    }
+</style>
+
+<div class="col-sm-4">
+    <div class="panel">
+        <div class="panel-heading">
+            <h4 class="panel-title text-center">可操作的主机列表</h4>
+        </div>
+
+        <div class="panel-body">
+            <button class="label label-success btn-item" id="select_all" onclick="SelectAll(this)">全选</button>
+            <button class="label label-success btn-item" id="select_reverse" onclick="SelectReverse(this)">反选</button>
+            <button class="label label-success btn-item" id="select_cancel" onclick="SelectCancel(this)">取消</button>
+
+            <!--搜索-->
+            <div class="searchbox">
+                <div class="input-group custom-search-form">
+                    <input type="text" id="search-host" oninput="HostSearch(this)" class="form-control" placeholder="搜索主机..">
+                    <span class="input-group-btn">
+                        <button class="text-muted" type="button"><i class="fa fa-search"></i></button>
+                    </span>
+                </div>
+            </div>
+
+            <div class="list-group" style="margin-top: 15px">
+
+                <!-- 已分组主机列表 -->
+                {% for host_group in request.user.host_groups.all %}
+                    <a href="#" class="list-group-item" onclick="ItemToggle(this)">
+                        {{ host_group.name }}
+                        <span class="badge badge-primary">{{ host_group.host_to_remote_users.count }}</span>
+                    </a>
+
+                    <ul>
+                        <li>
+{#                            <button class="badge badge-primary">全选</button>#}
+                            <input type="checkbox" onclick="CheckAll(this)"> 全选
+                        </li>
+                        {% for host_to_user_obj in host_group.host_to_remote_users.all %}
+                            <li>
+                                <input type="checkbox" tag="host-select" value="{{ host_to_user_obj.id }}">
+                                {{ host_to_user_obj.host.name }} ({{ host_to_user_obj.host.ip_addr }})
+                                @ {{ host_to_user_obj.remote_user.username }}
+                            </li>
+                        {% endfor %}
+
+                    </ul>
+                {% endfor %}
+
+                <!-- 未分组主机列表 -->
+                <a href="#" class="list-group-item" onclick="ItemToggle(this)">
+                    未分组主机列表
+                    <span class="badge badge-primary">{{ request.user.host_to_remote_users.count }}</span>
+                </a>
+
+                <ul>
+                    {% for host_to_user_obj in request.user.host_to_remote_users.all %}
+                        <li>
+{#                            <button class="badge badge-primary">全选</button>#}
+                            <input type="checkbox" onclick="CheckAll(this)"> 全选
+                        </li>
+
+                        <li>
+                            <input type="checkbox" tag="host-select" value="{{ host_to_user_obj.id }}">
+                            {{ host_to_user_obj.host.name }} ({{ host_to_user_obj.host.ip_addr }})
+                            @ {{ host_to_user_obj.remote_user.username }}
+                        </li>
+                    {% endfor %}
+
+                </ul>
+
+            </div>
+
+        </div>
+    </div>
+</div>
